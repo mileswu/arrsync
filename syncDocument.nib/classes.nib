@@ -1,0 +1,34 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {CLASS = NSDatePicker; LANGUAGE = ObjC; SUPERCLASS = NSControl; }, 
+        {CLASS = NSLevelIndicator; LANGUAGE = ObjC; SUPERCLASS = NSControl; }, 
+        {CLASS = NSSegmentedControl; LANGUAGE = ObjC; SUPERCLASS = NSControl; }, 
+        {
+            ACTIONS = {
+                addFiles = id; 
+                browseFile = id; 
+                debug = id; 
+                endModalWithTag = id; 
+                finishAddingFiles = id; 
+                sync = id; 
+            }; 
+            CLASS = documentController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                "_browsePanelAddition" = NSView; 
+                "_fileSheet" = NSPanel; 
+                "_mainWindow" = NSWindow; 
+                "_presetsArrayController" = NSArrayController; 
+            }; 
+            SUPERCLASS = NSObject; 
+        }, 
+        {
+            CLASS = presetArrayController; 
+            LANGUAGE = ObjC; 
+            SUPERCLASS = NSArrayController; 
+        }, 
+        {CLASS = presetCell; LANGUAGE = ObjC; SUPERCLASS = NSTextFieldCell; }
+    ); 
+    IBVersion = 1; 
+}

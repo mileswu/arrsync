@@ -1,0 +1,13 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {
+            ACTIONS = {endPanelButtons = id; }; 
+            CLASS = sftpController; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {"_passwordField" = NSSecureTextField; "_passwordPanel" = NSPanel; }; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}

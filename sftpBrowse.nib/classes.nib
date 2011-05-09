@@ -1,0 +1,26 @@
+{
+    IBClasses = (
+        {CLASS = FirstResponder; LANGUAGE = ObjC; SUPERCLASS = NSObject; }, 
+        {CLASS = NSSegmentedControl; LANGUAGE = ObjC; SUPERCLASS = NSControl; }, 
+        {
+            ACTIONS = {
+                backforward = id; 
+                changePath = id; 
+                connect = id; 
+                disconnect = id; 
+                endModalWithTag = id; 
+                useHistory = id; 
+            }; 
+            CLASS = sftpBrowse; 
+            LANGUAGE = ObjC; 
+            OUTLETS = {
+                "_browser" = NSBrowser; 
+                "_historySegmentedControl" = NSSegmentedControl; 
+                "_mainPanel" = NSPanel; 
+                "_passwordPanel" = NSPanel; 
+            }; 
+            SUPERCLASS = NSObject; 
+        }
+    ); 
+    IBVersion = 1; 
+}
