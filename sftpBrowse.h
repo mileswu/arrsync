@@ -32,9 +32,10 @@
 	
 	BOOL _chooseFiles;
 	BOOL _createDirectories;
+	BOOL _passwordPanelUp;
 	
 	IBOutlet NSPanel *_mainPanel;
-	//IBOutlet NSPanel *_passwordPanel;
+	IBOutlet NSPanel *_passwordPanel;
 	IBOutlet NSBrowser *_browser;
 	IBOutlet NSSegmentedControl *_historySegmentedControl;
 	//IBOutlet NSOutlineView *_outline;
@@ -70,6 +71,8 @@
 -(void)browser:(NSBrowser *)aBrowser willDisplayCell:(NSBrowserCell *)aCell atRow:(int)row column:(int)column;
 -(int)browser:(NSBrowser *)aBrowser numberOfRowsInColumn:(int)column;
 -(void)browserSelected:(NSBrowserCell *)cell;
+
+-(void)updateDirectoryListIsDir:(BOOL)isDir;
 
 -(void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context;
 

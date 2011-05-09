@@ -102,7 +102,7 @@ static void kbd_callback(const char *name, int name_len,
 
 -(IBAction)endModalWithTag:(id)sender 
 {
-	/*if([sender tag] >= 200) //This is for the Authentication Dialog Box
+	if([sender tag] >= 200) //This is for the Authentication Dialog Box
 	{
 		int tag = [sender tag] - 200;
 		if(tag == NSOKButton)
@@ -114,12 +114,13 @@ static void kbd_callback(const char *name, int name_len,
 			[self setValue:@"Authentication Error" forKey:@"_statusInfo"];
 		[NSApp endSheet:_passwordPanel];
 		[_passwordPanel orderOut:self];
+		_passwordPanelUp = FALSE;
 	}
 	else //This is for the whole dialog
-	{*/
+	{
 		[_sender endModalWithTag:sender];
 		[_mainPanel orderOut:self];
-	//}
+	}
 }
 
 -(NSString *)url
@@ -135,10 +136,9 @@ static void kbd_callback(const char *name, int name_len,
 -(IBAction)connect:(id)sender
 {	
 	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_connected"];
-
-	NSString *url = [self url];
-	
 	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_hostEditable"];
+
+	NSString *url = [self url];	
 	[_sftpController addHost:url];
 	
 	[_files removeAllObjects];
@@ -159,7 +159,7 @@ static void kbd_callback(const char *name, int name_len,
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(22);
 	
-	struct hostent *he = gethostbyname("localhost");
+	struct hostent *he = gethostbyname([[self valueForKey:@"_host"] UTF8String]);
 	memcpy((char *)&sin.sin_addr.s_addr, (char *)he->h_addr, he->h_length);
 	
 	[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_isbusy"];
@@ -175,9 +175,13 @@ static void kbd_callback(const char *name, int name_len,
 		printf("%02X ", (unsigned char)fingerprint[i]);
 	printf("\n");
 	
+	NSString *username = [self valueForKey:@"_username"];
+	if([username length] == 0)
+		username = NSUserName();
+	
 	void **abs = libssh2_session_abstract(_sshSession);
 	*abs = (void *)self;
-	retval = libssh2_userauth_keyboard_interactive(_sshSession, "dagijjg", &kbd_callback);
+	retval = libssh2_userauth_keyboard_interactive(_sshSession, [username UTF8String], &kbd_callback);
 	if(retval) {
 		printf("password failed\n");
 		[_sftpController failedAuthentication:[self url]];
@@ -263,25 +267,6 @@ static void kbd_callback(const char *name, int name_len,
 	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
 	
 	/*
-		
-	int i;
-	for(i=1;i<[listFiles count] - 1;i++)
-	{
-		NSString *name = [[[listFiles objectAtIndex:i] substringFromIndex:56] lastPathComponent];
-		NSString *absoluteName = [[listFiles objectAtIndex:i] substringFromIndex:56];
-		if(name == nil)
-			NSLog(@"problem 212");
-		if(absoluteName == nil)
-			NSLog(@"problem 232");
-		
-		
-		if([name characterAtIndex:0] == '.')
-			continue;
-
-		[dict setObject:absoluteName forKey:@"path"];
-		[dict setObject:name forKey:@"name"];
-		[files addObject:dict];
-	}
 	
 	NSMutableArray *list = [NSMutableArray array];
 	NSArray *reversedList = [[_browser path] pathComponents];
@@ -294,12 +279,17 @@ static void kbd_callback(const char *name, int name_len,
 
 -(NSString *)authenticate
 {
-	//NSString *pass = [_sftpController authenticateFromSavedPasswords:[self url]];
-	/*if(!pass)
+	NSString *pass = [_sftpController authenticateFromSavedPasswords:[self url]];
+	if(!pass)
 	{
+		_passwordPanelUp = TRUE;
 		[NSApp beginSheet:_passwordPanel modalForWindow:_mainPanel modalDelegate:self didEndSelector:NULL contextInfo:NULL];
-	}*/
-	return(@"temp");
+		while(_passwordPanelUp) {
+			[[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
+		}
+		pass = [self valueForKey:@"_passwordField"];
+	}
+	return(pass);
 }
 
 -(int)browser:(NSBrowser *)aBrowser numberOfRowsInColumn:(int)column
@@ -337,19 +327,6 @@ static void kbd_callback(const char *name, int name_len,
 		
 		files = [_files objectForKey:path];
 		
-		
-		if(row >= [files count])
-		{
-			NSLog(@"problem 674");
-			int i;
-			NSLog(@"Begin dump for %@", [_browser path]);
-			NSLog(@"no %d", [files count]);
-			for(i=0;i<[files count];i++)
-				NSLog([[files objectAtIndex:i] valueForKey:@"path"]);
-			NSLog(@"finished dump");
-		}
-		
-		
 		[aCell setStringValue:[[files objectAtIndex:row] objectForKey:@"name"]];
 		[aCell setImage:[[files objectAtIndex:row] objectForKey:@"icon"]];
 		if([[[files objectAtIndex:row] objectForKey:@"type"] isEqualToString:@"file"])
@@ -365,6 +342,7 @@ static void kbd_callback(const char *name, int name_len,
 
 -(void)browserSelected:(NSBrowserCell *)cell
 {
+	NSLog([_browser path]);
 	NSArray *selectedCells = [_browser selectedCells];
 	int i;
 
@@ -383,18 +361,13 @@ static void kbd_callback(const char *name, int name_len,
 			[_history release];
 			_history = newhistory;
 		}
+		[self updateDirectoryListIsDir:TRUE];
 		[self updateHistoryEnabled];
 	}
 	
 	else if([[_browser selectedCell] isLeaf] || [selectedCells count] != 1 ) //selected either multiple files or a file. This is for updating top bar
 	{
-		NSMutableArray *list = [NSMutableArray array];
-		NSArray *reversedList = [[_browser path] pathComponents];
 		
-		for(i=([reversedList count]-2); i>=0; i--) //reversing but ignoring last one cos it's a file not a dir
-			[list addObject:[reversedList objectAtIndex:i]];
-		[self setValue:list forKey:@"_directoryList"];
-
 	}
 }
 
@@ -413,23 +386,21 @@ static void kbd_callback(const char *name, int name_len,
 		NSString *newPath = [NSString pathWithComponents:newPathComponents];
 		NSLog(newPath);
 		[_browser setPath:newPath];
-		
-		NSMutableArray *reversed = [NSMutableArray array];
-		for(i=([newPathComponents count]-1); i>=0; i--)
-			[reversed addObject:[newPathComponents objectAtIndex:i]];
-		
-		[self setValue:[NSNumber numberWithInt:0] forKey:@"_currentDirectoryIndex"];
-		[self setValue:reversed forKey:@"_directoryList"];
-
-		//[_outline reloadData];
+		[self updateDirectoryListIsDir:TRUE];
 	}
-	/*else if([keyPath isEqualToString:@"_viewMode"] && [[change objectForKey:NSKeyValueChangeNewKey] intValue] == 0)
-	{
-		[_outline reloadData];
-	}*/
 }
 
-
+-(void)updateDirectoryListIsDir:(BOOL)isDir
+{
+	int i;
+	NSArray *pathComponents = [[_browser path] pathComponents];
+	
+	NSMutableArray *reversed = [NSMutableArray array];
+	for(i=([pathComponents count]-1); i>=0; i--)
+		[reversed addObject:[pathComponents objectAtIndex:i]];
+	[self setValue:[NSNumber numberWithInt:0] forKey:@"_currentDirectoryIndex"];
+	[self setValue:reversed forKey:@"_directoryList"];
+}
 
 -(IBAction)backforward:(id)sender
 {
@@ -446,14 +417,7 @@ static void kbd_callback(const char *name, int name_len,
 	
 	NSString *newpath = [_history objectAtIndex:_historyPosition];
 	[_browser setPath:newpath];
-	
-	int i;
-	NSMutableArray *list = [NSMutableArray array];
-	NSArray *reversedList = [[_browser path] pathComponents];
-	
-	for(i=([reversedList count]-1); i>=0; i--) //reversing
-		[list addObject:[reversedList objectAtIndex:i]];
-	[self setValue:list forKey:@"_directoryList"];
+	[self updateDirectoryListIsDir:TRUE];
 	
 	[self updateHistoryEnabled];
 }
