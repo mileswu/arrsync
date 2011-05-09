@@ -23,6 +23,8 @@
 		28E3A3C50AD8267400A6C180 /* syncing.png in Resources */ = {isa = PBXBuildFile; fileRef = 28E3A3C40AD8267400A6C180 /* syncing.png */; };
 		2B031C040A4C43CF00FAEFD1 /* documentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B031C030A4C43CF00FAEFD1 /* documentController.m */; };
 		2B31F4DB0A4D79C500405013 /* sftpController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B31F4DA0A4D79C500405013 /* sftpController.m */; };
+		2B6858771377CB09006F9C98 /* libssh2.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2B6858751377CAFE006F9C98 /* libssh2.1.dylib */; };
+		2B68594713783ED2006F9C98 /* libssh2.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B6858751377CAFE006F9C98 /* libssh2.1.dylib */; };
 		2B84D0850B1B3D0600E31F9D /* sftpAuthentication.nib in Resources */ = {isa = PBXBuildFile; fileRef = 2B84D0840B1B3D0600E31F9D /* sftpAuthentication.nib */; };
 		2B99C9570AD85D2700F24358 /* hasContentsValueTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B99C9560AD85D2700F24358 /* hasContentsValueTransformer.m */; };
 		2BAEC8710A4C8995002C4423 /* sftpBrowse.nib in Resources */ = {isa = PBXBuildFile; fileRef = 2BAEC8700A4C8995002C4423 /* sftpBrowse.nib */; };
@@ -40,6 +42,19 @@
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2B6858241377C238006F9C98 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				2B6858771377CB09006F9C98 /* libssh2.1.dylib in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -70,6 +85,7 @@
 		2B31F4D90A4D79C500405013 /* sftpController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sftpController.h; sourceTree = "<group>"; };
 		2B31F4DA0A4D79C500405013 /* sftpController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = sftpController.m; sourceTree = "<group>"; };
 		2B4E585C0A511C0E003232C9 /* sftpBrowse.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = sftpBrowse.h; sourceTree = "<group>"; };
+		2B6858751377CAFE006F9C98 /* libssh2.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssh2.1.dylib; path = libssh2/lib/libssh2.1.dylib; sourceTree = "<group>"; };
 		2B84D0840B1B3D0600E31F9D /* sftpAuthentication.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = sftpAuthentication.nib; sourceTree = "<group>"; };
 		2B99C9550AD85D2700F24358 /* hasContentsValueTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hasContentsValueTransformer.h; sourceTree = "<group>"; };
 		2B99C9560AD85D2700F24358 /* hasContentsValueTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = hasContentsValueTransformer.m; sourceTree = "<group>"; };
@@ -103,6 +119,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2B68594713783ED2006F9C98 /* libssh2.1.dylib in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				2BE7B4A70AD6FEAB00079510 /* Security.framework in Frameworks */,
 			);
@@ -193,6 +210,7 @@
 		29B97314FDCFA39411CA2CEA /* arRsync */ = {
 			isa = PBXGroup;
 			children = (
+				2B6858751377CAFE006F9C98 /* libssh2.1.dylib */,
 				2BB128BC0AD56BD1009D8EE9 /* SFTP */,
 				2BB128B90AD56BB5009D8EE9 /* MAIN anything below no dealloc */,
 				2BB128B80AD56BAC009D8EE9 /* GUI */,
@@ -251,6 +269,8 @@
 		2BB128B90AD56BB5009D8EE9 /* MAIN anything below no dealloc */ = {
 			isa = PBXGroup;
 			children = (
+				2BAECA500A4C96D1002C4423 /* PTYTask.h */,
+				2BAECA510A4C96D1002C4423 /* PTYTask.m */,
 				29B97316FDCFA39411CA2CEA /* main.m */,
 				2BB128670AD56A77009D8EE9 /* arRsync.h */,
 				286721020A4B463400748019 /* appController.h */,
@@ -266,8 +286,6 @@
 		2BB128BC0AD56BD1009D8EE9 /* SFTP */ = {
 			isa = PBXGroup;
 			children = (
-				2BAECA500A4C96D1002C4423 /* PTYTask.h */,
-				2BAECA510A4C96D1002C4423 /* PTYTask.m */,
 				2B31F4D90A4D79C500405013 /* sftpController.h */,
 				2B31F4DA0A4D79C500405013 /* sftpController.m */,
 				2B4E585C0A511C0E003232C9 /* sftpBrowse.h */,
@@ -286,6 +304,7 @@
 				8D1107290486CEB800E47090 /* Resources */,
 				8D11072C0486CEB800E47090 /* Sources */,
 				8D11072E0486CEB800E47090 /* Frameworks */,
+				2B6858241377C238006F9C98 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -303,9 +322,18 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "arRsync" */;
+			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* arRsync */;
 			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				8D1107260486CEB800E47090 /* arRsync */,
 			);
@@ -386,12 +414,22 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../ConnectionKit/build/Debug\"";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/libssh2/lib\"";
 				PRODUCT_NAME = arRsync;
 				WRAPPER_EXTENSION = app;
 				ZERO_LINK = YES;
@@ -405,10 +443,20 @@
 					ppc,
 					i386,
 				);
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../ConnectionKit/build/Debug\"";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = G5;
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/libssh2/lib\"";
 				PRODUCT_NAME = arRsync;
 				WRAPPER_EXTENSION = app;
 			};
@@ -417,10 +465,16 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT_PRE_XCODE_3_1)";
+				ARCHS_STANDARD_64_BIT_PRE_XCODE_3_1 = x86_64;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = libssh2/include/;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = libssh2/lib/;
+				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT = /Developer/SDKs/MacOSX10.5.sdk;
 			};
 			name = Debug;
 		};
@@ -430,7 +484,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				PREBINDING = NO;
-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT = /Developer/SDKs/MacOSX10.5.sdk;
 			};
 			name = Release;
 		};

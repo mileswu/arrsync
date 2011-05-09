@@ -7,6 +7,14 @@
 //
 
 #import <Cocoa/Cocoa.h>
+#import <libssh2.h>
+#import <libssh2_sftp.h>
+#import <sys/socket.h>
+#import <netinet/in.h>
+#import <unistd.h>
+#import <sys/types.h>
+#import <netdb.h>
+
 #import "PTYTask.h"
 #import "sftpController.h"
 
@@ -17,6 +25,10 @@
 	id _sender; 
 	
 	sftpController *_sftpController;
+	
+	LIBSSH2_SESSION *_sshSession;
+	LIBSSH2_SFTP *_sftpSession;
+	LIBSSH2_SFTP_HANDLE *_sftpHandle;
 	
 	BOOL _chooseFiles;
 	BOOL _createDirectories;
@@ -33,7 +45,6 @@
 	NSNumber *_hostEditable;
 	NSString *_statusInfo;
 	NSNumber *_addToKeychain;
-	NSData *_leftoverData;
 	NSMutableDictionary *_files;
 	//NSNumber *_viewMode;
 	NSNumber *_isbusy;
@@ -44,7 +55,6 @@
 	NSNumber *_currentDirectoryIndex;
 	
 	NSNumber *_connected;
-	PTYTask *_sshTask;
 }
 -(sftpBrowse *)initWithSender:(id)sender;
 -(void)dealloc;
@@ -86,8 +96,6 @@
 
 -(IBAction)endModalWithTag:(id)sender;
 
--(void)waitForConnection:(id)goive;
--(NSMutableData *)waitForPrompt;
 -(NSString *)authenticate;
 -(void)ls:(NSString *)path;
 

@@ -8,6 +8,22 @@
 
 #import "sftpBrowse.h"
 
+static void kbd_callback(const char *name, int name_len,
+                         const char *instruction, int instruction_len,
+                         int num_prompts,
+                         const LIBSSH2_USERAUTH_KBDINT_PROMPT *prompts,
+                         LIBSSH2_USERAUTH_KBDINT_RESPONSE *responses,
+                         void **abstract)
+{
+	sftpBrowse * sB = (sftpBrowse *)*abstract;
+	NSString *pass = [sB authenticate];
+	
+	char *password = (char *)[pass UTF8String];
+    if (num_prompts == 1) {
+        responses[0].text = strdup(password);
+        responses[0].length = strlen(password);
+    }
+} 
 
 @implementation sftpBrowse
 
@@ -30,8 +46,6 @@
 	//_passwordField = [[NSMutableString string] retain];
 	_statusInfo = [@"Idle" retain];
 	_files = [[NSMutableDictionary dictionary] retain];
-	_leftoverData = [[NSData data] retain];
-	_sshTask = [[[[PTYTask alloc] init] autorelease] retain];
 	_isbusy = [[NSNumber numberWithBool:FALSE] retain];
 	_history = [[NSMutableArray array] retain];
 	
@@ -58,8 +72,6 @@
 	//[_passwordField release];
 	[_statusInfo release];
 	[_files release];
-	[_leftoverData release];
-	[_sshTask release];
 	[_isbusy release];
 	[_history release];
 	
@@ -122,171 +134,137 @@
 
 -(IBAction)connect:(id)sender
 {	
-	//sleep(1); //ugly hack
-	[_sshTask kill];
-	[_sshTask release];
 	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_connected"];
 
-	_sshTask = [[PTYTask alloc] init];
 	NSString *url = [self url];
 	
 	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_hostEditable"];
 	[_sftpController addHost:url];
-	
-	[_leftoverData release];
-	_leftoverData = [[NSData data] retain];
 	
 	[_files removeAllObjects];
 	
 	[_history release];
 	_history = [[NSMutableArray array] retain];
 	_historyPosition = 0;
-
-	NSArray *args = [NSArray arrayWithObjects:@"/usr/bin/sftp", url, nil];
-	[_sshTask setArgs:args];
-	[_sshTask setPath:[args objectAtIndex:0]];
-	[_sshTask launchTask];
-	[self setValue:@"Connecting..." forKey:@"_statusInfo"];
-	NSLog(@"125");
-
-	[NSThread detachNewThreadSelector:@selector(waitForConnection:) toTarget:self withObject:nil];
-}
-
--(void)waitForConnection:(id)goive
-{
-	NSLog(@"126");
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	NSLog(@"127");
+	
+	int retval;
+	retval = libssh2_init(0);
+	if(retval) {
+		NSLog(@"Error init libssh2");
+	}
+	
+	int sock = socket(AF_INET, SOCK_STREAM, 0);
+	
+	struct sockaddr_in sin;
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(22);
+	
+	struct hostent *he = gethostbyname("localhost");
+	memcpy((char *)&sin.sin_addr.s_addr, (char *)he->h_addr, he->h_length);
 	
 	[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_isbusy"];
-
-	if(![self waitForPrompt])
-	{
+	connect(sock, (struct sockaddr*) &sin, sizeof(sin));
+	
+	_sshSession = libssh2_session_init();
+	libssh2_session_startup(_sshSession, sock);
+	
+	char *fingerprint = libssh2_hostkey_hash(_sshSession, LIBSSH2_HOSTKEY_HASH_MD5);
+	printf("Fingerprint: ");
+	int i;
+	for(i=0; i<16; i++)
+		printf("%02X ", (unsigned char)fingerprint[i]);
+	printf("\n");
+	
+	void **abs = libssh2_session_abstract(_sshSession);
+	*abs = (void *)self;
+	retval = libssh2_userauth_keyboard_interactive(_sshSession, "dagijjg", &kbd_callback);
+	if(retval) {
+		printf("password failed\n");
+		[_sftpController failedAuthentication:[self url]];
+		
 		[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
-		return;
+		[self setValue:@"Authentication Error" forKey:@"_statusInfo"];
+		[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_hostEditable"];
+		NSAlert *myAlert = [NSAlert alertWithMessageText: @"Failed to Connect"
+										   defaultButton:nil
+										 alternateButton:nil 
+											 otherButton:nil
+							   informativeTextWithFormat:@"The connection could not made. SSH returned the following error:\n%@", @"G"];
+		[myAlert setAlertStyle:NSCriticalAlertStyle];
+		[myAlert beginSheetModalForWindow:_mainPanel modalDelegate:nil didEndSelector:nil contextInfo:nil];
+		return(nil);
 	}
+	printf("in\n");
+	
+
+	_sftpSession = libssh2_sftp_init(_sshSession);
+	libssh2_session_set_blocking(_sshSession, 1);
+		
 	
 	[self setValue:@"Idle" forKey:@"_statusInfo"];
 	[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_connected"];
-	
+	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
+
 	[self setValue:[NSArray arrayWithObject:@"/"] forKey:@"_directoryList"];
 	[_browser reloadColumn:0];
-	//[_history addObject:@"/"];
-	//[_outline reloadData];
-	
-	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
-	[pool release];
 }
-
--(NSMutableData *)waitForPrompt
-{
-	NSString *str;
-	NSMutableData *data = [NSMutableData data];
-	NSFileHandle *taskHandle = [_sshTask handle];
-	BOOL authenticatedBefore = FALSE;
-	[data appendData:_leftoverData];
-		
-	while(1)
-	{
-		NSData *tempdata = [taskHandle availableData];
-		if([tempdata length] == 0 && [_connected boolValue] == FALSE) //data is empty
-		{
-			[self setValue:@"Error" forKey:@"_statusInfo"];
-			NSString * sshError = [[[NSString alloc] initWithData:[[_sshTask errorHandle] availableData] encoding:NSUTF8StringEncoding] autorelease];
-			NSLog(sshError);
-
-			NSAlert *myAlert = [NSAlert alertWithMessageText: @"Failed to Connect"
-											   defaultButton:nil
-											 alternateButton:nil 
-												 otherButton:nil
-								   informativeTextWithFormat:@"The connection could not made. SSH returned the following error:\n%@", sshError];
-			[myAlert setAlertStyle:NSCriticalAlertStyle];
-			[myAlert beginSheetModalForWindow:_mainPanel modalDelegate:nil didEndSelector:nil contextInfo:nil];
-			
-			[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
-			[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_hostEditable"];
-			return(nil);
-		}
-		else if([tempdata length] == 0) //data is empty
-		{
-			[self setValue:@"Error" forKey:@"_statusInfo"];
-			NSString * sshError = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] autorelease];
-			
-			NSAlert *myAlert = [NSAlert alertWithMessageText: @"Problem"
-											   defaultButton:nil
-											 alternateButton:nil 
-												 otherButton:nil
-								   informativeTextWithFormat:@"The connection died unexpectedly. SSH returned the following error:\n%@", sshError];
-			[myAlert setAlertStyle:NSCriticalAlertStyle];
-			[myAlert beginSheetModalForWindow:_mainPanel modalDelegate:nil didEndSelector:nil contextInfo:nil];
-			[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_connected"];
-			[_browser reloadColumn:0];
-			
-			[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
-			[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_hostEditable"];
-			return(nil);
-		}
-		
-		[data appendData:tempdata];
-		str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-
-		if([str hasSuffix:@"Are you sure you want to continue connecting (yes/no)? "])
-			[taskHandle writeData: [[[_sftpController addkeyForHost:[self url]] stringByAppendingString:@"\r"] dataUsingEncoding:NSUTF8StringEncoding]];
-		
-		if([str rangeOfString:@"Too many authentication failures"].location != NSNotFound)
-		{
-			[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
-			[self setValue:@"Authentication Error" forKey:@"_statusInfo"];
-			[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_hostEditable"];
-			return(nil);
-		}
-			
-		if([str hasSuffix:@"assword:"] || [str hasSuffix:@"assword: "])
-		{
-			if(authenticatedBefore == TRUE)
-				[_sftpController failedAuthentication:[self url]];
-			NSString *pass = [self authenticate];
-			if(!pass)
-				return(nil);
-			[taskHandle writeData: [[pass stringByAppendingString:@"\r"] dataUsingEncoding:NSUTF8StringEncoding]];
-			authenticatedBefore = TRUE;
-		}
-		
-		NSRange promptLoc = [str rangeOfString:@"sftp> "];
-		if(promptLoc.location != NSNotFound)
-		{
-			NSRange leftoverRange;
-			leftoverRange.location = promptLoc.location + 6;
-			leftoverRange.length = [data length] - (leftoverRange.location);
-			
-			[_leftoverData release];
-			_leftoverData = [[data subdataWithRange:leftoverRange] retain];
-			break;
-		}
-		[str release];
-	}
-	[str release];
-
-	return(data);
-}                     
 
 -(void)ls:(NSString *)path
 {
-	NSFileHandle *taskHandle = [_sshTask handle];
-	[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_isbusy"];
 	NSLog(@"Listing %@", path);
-	[taskHandle writeData: [[NSString stringWithFormat:@"ls -l \"%@\"\r", path] dataUsingEncoding:NSUTF8StringEncoding]];
-	NSMutableData *data = [self waitForPrompt];
-	
-	if(!data)
-		return;
-	
-	NSArray *listFiles = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] componentsSeparatedByString:@"\r\n"];
-	
+	[self setValue:[NSNumber numberWithBool:TRUE] forKey:@"_isbusy"];
+	_sftpHandle = libssh2_sftp_opendir(_sftpSession, [path UTF8String]);
+
 	NSMutableArray *files = [NSMutableArray array];
+	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
+
+
+	do {
+		char mem[512];
+		char longentry[512];
+		LIBSSH2_SFTP_ATTRIBUTES attrs;
+		
+		/* loop until we fail */ 
+		int retval = libssh2_sftp_readdir_ex(_sftpHandle, mem, sizeof(mem),longentry, sizeof(longentry), &attrs);
+		if(retval > 0) {
+			/* retval is the length of the file name in the mem buffer */ 
+			
+			NSString *name = [NSString stringWithUTF8String:mem];			
+			NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+
+			if([name characterAtIndex:0] == '.')
+				continue;
+			
+			if(LIBSSH2_SFTP_S_ISDIR(attrs.permissions)) {
+				NSImage *icon = [workspace iconForFile:@"/etc"];
+				[icon setSize:NSMakeSize(16,16)];			
+				[dict setObject:icon forKey:@"icon"];
+				
+				[dict setObject:@"dir" forKey:@"type"];
+			}
+			else {
+				NSImage *icon = [workspace iconForFileType:[[name componentsSeparatedByString:@"."] lastObject]];
+				[icon setSize:NSMakeSize(16,16)];
+				[dict setObject:icon forKey:@"icon"];
+				
+				[dict setObject:@"file" forKey:@"type"];
+			}
+			[dict setObject:name forKey:@"name"];
+			[files addObject:dict];
+			
+			printf("%s\n", mem);
+		}
+		else
+			break;
+		
+	} while (1);
+	
+	[_files setObject:files forKey:path];
+	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
+	
+	/*
 		
 	int i;
-	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
 	for(i=1;i<[listFiles count] - 1;i++)
 	{
 		NSString *name = [[[listFiles objectAtIndex:i] substringFromIndex:56] lastPathComponent];
@@ -299,23 +277,7 @@
 		
 		if([name characterAtIndex:0] == '.')
 			continue;
-		NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-		if([[listFiles objectAtIndex:i] characterAtIndex:0] != 'd')
-		{
-			NSImage *icon = [workspace iconForFileType:[[name componentsSeparatedByString:@"."] lastObject]];
-			[icon setSize:NSMakeSize(16,16)];			
-			[dict setObject:icon forKey:@"icon"];
-			
-			[dict setObject:@"file" forKey:@"type"];
-		}
-		else
-		{
-			NSImage *icon = [workspace iconForFile:@"/etc"];
-			[icon setSize:NSMakeSize(16,16)];
-			[dict setObject:icon forKey:@"icon"];
-			
-			[dict setObject:@"dir" forKey:@"type"];
-		}
+
 		[dict setObject:absoluteName forKey:@"path"];
 		[dict setObject:name forKey:@"name"];
 		[files addObject:dict];
@@ -327,18 +289,17 @@
 		[list addObject:[reversedList objectAtIndex:i]];
 	[self setValue:list forKey:@"_directoryList"];
 	
-	[_files setObject:files forKey:path];
-	[self setValue:[NSNumber numberWithBool:FALSE] forKey:@"_isbusy"];
+	*/
 }
 
 -(NSString *)authenticate
 {
-	NSString *pass = [_sftpController authenticateFromSavedPasswords:[self url]];
+	//NSString *pass = [_sftpController authenticateFromSavedPasswords:[self url]];
 	/*if(!pass)
 	{
 		[NSApp beginSheet:_passwordPanel modalForWindow:_mainPanel modalDelegate:self didEndSelector:NULL contextInfo:NULL];
 	}*/
-	return(pass);
+	return(@"temp");
 }
 
 -(int)browser:(NSBrowser *)aBrowser numberOfRowsInColumn:(int)column
